@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quick Table Reply Editor</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #5b667a;
+      --line: #d9deea;
+      --line-strong: #b9c1d3;
+      --accent: #315ac7;
+      --accent-soft: #e9efff;
+      --danger: #b42318;
+      --danger-soft: #fff1f0;
+      --shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+
+    header {
+      padding: 30px 22px 16px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.7rem, 2vw, 2.3rem);
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      max-width: 820px;
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 22px 36px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-inner { padding: 18px; }
+
+    .paste-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 880px) {
+      .paste-grid { grid-template-columns: 1fr; }
+    }
+
+    .paste-zone {
+      min-height: 150px;
+      border: 2px dashed var(--line-strong);
+      border-radius: 14px;
+      padding: 18px;
+      background: #fbfcff;
+      outline: none;
+      overflow: auto;
+    }
+
+    .paste-zone:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .paste-zone:empty::before {
+      content: attr(data-placeholder);
+      color: #7b8495;
+    }
+
+    .help-card {
+      background: #fbfcff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      color: var(--muted);
+    }
+
+    .help-card h2 {
+      margin: 0 0 8px;
+      color: var(--ink);
+      font-size: 1rem;
+    }
+
+    .help-card ol {
+      margin: 10px 0 0;
+      padding-left: 1.25rem;
+    }
+
+    .help-card li + li { margin-top: 6px; }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .toolbar-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding-right: 10px;
+      margin-right: 2px;
+      border-right: 1px solid var(--line);
+    }
+
+    .toolbar-section:last-child {
+      border-right: 0;
+      padding-right: 0;
+    }
+
+    button, .checkbox-pill {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font: inherit;
+      cursor: pointer;
+      min-height: 38px;
+    }
+
+    button:hover, .checkbox-pill:hover { background: #f8faff; }
+
+    button:focus-visible, .checkbox-pill:focus-within {
+      outline: 3px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 650;
+    }
+
+    button.primary:hover { filter: brightness(0.96); }
+
+    button.danger {
+      border-color: #f0b8b3;
+      color: var(--danger);
+      background: #fff;
+    }
+
+    button.danger:hover { background: var(--danger-soft); }
+
+    button.ghost { color: var(--muted); }
+
+    button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+    .checkbox-pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      user-select: none;
+      color: var(--muted);
+    }
+
+    .checkbox-pill input { margin: 0; }
+
+    .statusbar {
+      min-height: 24px;
+      padding: 10px 18px 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .statusbar strong { color: var(--ink); }
+
+    .table-stage {
+      padding: 14px 18px 18px;
+      overflow: auto;
+      min-height: 240px;
+    }
+
+    .empty-state {
+      border: 1px dashed var(--line-strong);
+      border-radius: 14px;
+      padding: 28px;
+      background: #fbfcff;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-state strong { color: var(--ink); }
+
+    .editor-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 520px;
+      width: max-content;
+      background: #fff;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .editor-table th,
+    .editor-table td {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      min-width: 120px;
+      max-width: 420px;
+      vertical-align: top;
+    }
+
+    .editor-table tr:last-child td,
+    .editor-table tr:last-child th { border-bottom: 0; }
+
+    .editor-table th:last-child,
+    .editor-table td:last-child { border-right: 0; }
+
+    .editor-table .corner,
+    .editor-table .col-handle,
+    .editor-table .row-handle {
+      min-width: 58px;
+      width: 58px;
+      text-align: center;
+      background: #f7f9fe;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 6px;
+      position: sticky;
+      z-index: 3;
+    }
+
+    .editor-table .corner {
+      left: 0;
+      top: 0;
+      z-index: 5;
+    }
+
+    .editor-table .col-handle {
+      top: 0;
+      z-index: 4;
+    }
+
+    .editor-table .row-handle {
+      left: 0;
+      z-index: 3;
+    }
+
+    .handle-button {
+      width: 100%;
+      min-height: 30px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .handle-button.active,
+    .handle-button.selected {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .data-cell {
+      padding: 9px 10px;
+      outline: none;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      min-height: 38px;
+    }
+
+    .data-cell:focus {
+      box-shadow: inset 0 0 0 2px var(--accent);
+      background: #fff;
+    }
+
+    .data-cell.header-cell {
+      font-weight: 700;
+      background: #f8faff;
+    }
+
+    .data-cell.active-col,
+    .data-cell.active-row { background: #fbfdff; }
+
+    .data-cell.selected-col,
+    .data-cell.selected-row { background: #eef4ff; }
+
+    .cell-tools {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcff;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .hidden { display: none !important; }
+
+    .manual-copy {
+      position: fixed;
+      inset: auto 18px 18px auto;
+      width: min(680px, calc(100vw - 36px));
+      max-height: min(560px, calc(100vh - 36px));
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(17, 24, 39, 0.22);
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .manual-copy .manual-copy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .manual-copy h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .manual-copy p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .manual-copy-content {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      overflow: auto;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border: 1px solid var(--line-strong);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      background: #fff;
+      font-family: var(--mono);
+      font-size: 0.83em;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quick Table Reply Editor</h1>
+    <p class="subtitle">Paste a table from email, Sheets, Excel, CSV, TSV, or Markdown; make fast temporary edits; then copy a clean table back into your email reply.</p>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="paste-heading">
+      <div class="panel-inner paste-grid">
+        <div>
+          <h2 id="paste-heading" style="margin:0 0 10px;font-size:1rem;">Paste table data</h2>
+          <div id="pasteZone" class="paste-zone" contenteditable="true" role="textbox" aria-label="Paste table data here" data-placeholder="Click here and paste your table. HTML tables, tab-separated rows, CSV, and Markdown tables are supported."></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <button id="loadPasteButton" type="button">Load pasted content</button>
+            <button id="sampleButton" type="button" class="ghost">Load sample table</button>
+          </div>
+        </div>
+        <aside class="help-card" aria-label="How to use">
+          <h2>Workflow</h2>
+          <ol>
+            <li>Copy the table from the email or data source.</li>
+            <li>Paste it into the box on the left.</li>
+            <li>Click any cell to choose the current row and column.</li>
+            <li>Move, add, or delete columns and rows.</li>
+            <li>Use <strong>Copy rich table</strong>, then paste into your email reply.</li>
+          </ol>
+          <p style="margin:12px 0 0;">Everything runs in this browser page. No data is sent anywhere.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="editorPanel" class="panel" aria-label="Table editor">
+      <div class="toolbar" role="toolbar" aria-label="Table editing tools">
+        <div class="toolbar-section">
+          <button id="copyRichButton" type="button" class="primary">Copy rich table</button>
+          <button id="copyTextButton" type="button">Copy plain text</button>
+        </div>
+        <div class="toolbar-section">
+          <button id="undoButton" type="button">Undo</button>
+          <button id="trimButton" type="button">Trim empty edges</button>
+          <label class="checkbox-pill"><input id="headerMode" type="checkbox" checked /> first row is header</label>
+        </div>
+        <div class="toolbar-section">
+          <button id="addColBeforeButton" type="button">Add col before</button>
+          <button id="addColAfterButton" type="button">Add col after</button>
+          <button id="moveColLeftButton" type="button">Move col left</button>
+          <button id="moveColRightButton" type="button">Move col right</button>
+          <button id="deleteColButton" type="button" class="danger">Delete col</button>
+        </div>
+        <div class="toolbar-section">
+          <button id="addRowAboveButton" type="button">Add row above</button>
+          <button id="addRowBelowButton" type="button">Add row below</button>
+          <button id="deleteRowButton" type="button" class="danger">Delete row</button>
+        </div>
+        <div class="toolbar-section">
+          <button id="clearButton" type="button" class="ghost">Clear</button>
+        </div>
+      </div>
+      <div id="statusbar" class="statusbar" aria-live="polite"></div>
+      <div id="tableStage" class="table-stage"></div>
+    </section>
+  </main>
+
+  <div id="manualCopy" class="manual-copy hidden" role="dialog" aria-modal="true" aria-labelledby="manualCopyTitle">
+    <div class="manual-copy-header">
+      <h2 id="manualCopyTitle">Manual copy fallback</h2>
+      <button id="closeManualCopy" type="button">Close</button>
+    </div>
+    <p>The browser blocked automatic clipboard access. Select the table below, copy it, and paste it into your email reply.</p>
+    <div id="manualCopyContent" class="manual-copy-content" tabindex="0"></div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (id) => document.getElementById(id);
+      const pasteZone = $("pasteZone");
+      const tableStage = $("tableStage");
+      const statusbar = $("statusbar");
+      const headerModeCheckbox = $("headerMode");
+      const manualCopy = $("manualCopy");
+      const manualCopyContent = $("manualCopyContent");
+
+      let data = [];
+      let activeRow = 0;
+      let activeCol = 0;
+      let selectedRows = new Set();
+      let selectedCols = new Set();
+      let history = [];
+
+      const sampleData = [
+        ["Client", "Plan", "Renewal", "Owner", "Notes"],
+        ["Acme Co.", "Pro", "2026-07-15", "Marta", "Needs updated quote"],
+        ["Northwind", "Basic", "2026-08-01", "Louis", "Remove setup fee"],
+        ["Globex", "Enterprise", "2026-09-10", "Aisha", "Send summary by Friday"]
+      ];
+
+      function setStatus(message, isStrong = false) {
+        statusbar.innerHTML = isStrong ? `<strong>${escapeHtml(message)}</strong>` : escapeHtml(message);
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function normalizeText(value) {
+        return String(value ?? "")
+          .replace(/\r\n?/g, "\n")
+          .replace(/\u00a0/g, " ")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+      }
+
+      function cellTextFromElement(element) {
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
+        return normalizeText(clone.textContent || "");
+      }
+
+      function deepCopy(matrix) {
+        return matrix.map((row) => row.slice());
+      }
+
+      function pushHistory() {
+        history.push(deepCopy(data));
+        if (history.length > 60) history.shift();
+        updateToolbarState();
+      }
+
+      function undo() {
+        if (!history.length) return;
+        data = history.pop();
+        activeRow = Math.min(activeRow, Math.max(0, data.length - 1));
+        activeCol = Math.min(activeCol, Math.max(0, columnCount() - 1));
+        selectedRows.clear();
+        selectedCols.clear();
+        render();
+        setStatus("Undo applied.");
+      }
+
+      function columnCount(matrix = data) {
+        return matrix.reduce((max, row) => Math.max(max, row.length), 0);
+      }
+
+      function normalizeRectangular(matrix) {
+        const width = columnCount(matrix);
+        return matrix.map((row) => {
+          const next = row.slice();
+          while (next.length < width) next.push("");
+          return next;
+        });
+      }
+
+      function trimEmptyEdges(matrix) {
+        let rows = normalizeRectangular(matrix).map((row) => row.map((cell) => normalizeText(cell)));
+        while (rows.length && rows[0].every((cell) => cell === "")) rows.shift();
+        while (rows.length && rows[rows.length - 1].every((cell) => cell === "")) rows.pop();
+        if (!rows.length) return [];
+
+        let left = 0;
+        let right = columnCount(rows) - 1;
+        while (left <= right && rows.every((row) => (row[left] || "") === "")) left += 1;
+        while (right >= left && rows.every((row) => (row[right] || "") === "")) right -= 1;
+
+        if (left > right) return [];
+        return rows.map((row) => row.slice(left, right + 1));
+      }
+
+      function parseClipboardData(html, text) {
+        if (html && html.trim()) {
+          const parsedFromHtml = parseHtmlTable(html);
+          if (parsedFromHtml.length) return parsedFromHtml;
+        }
+        return parsePlainTextTable(text || "");
+      }
+
+      function parseHtmlTable(html) {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const table = doc.querySelector("table");
+        if (!table) return [];
+
+        const rows = [];
+        const pendingRowSpans = [];
+
+        table.querySelectorAll("tr").forEach((tr) => {
+          const out = [];
+          let col = 0;
+
+          function fillPending() {
+            while (pendingRowSpans[col] && pendingRowSpans[col].remaining > 0) {
+              out[col] = pendingRowSpans[col].value;
+              pendingRowSpans[col].remaining -= 1;
+              if (pendingRowSpans[col].remaining <= 0) pendingRowSpans[col] = null;
+              col += 1;
+            }
+          }
+
+          fillPending();
+          Array.from(tr.children)
+            .filter((node) => /^(TD|TH)$/i.test(node.tagName))
+            .forEach((cell) => {
+              fillPending();
+              const colSpan = Math.max(1, parseInt(cell.getAttribute("colspan") || "1", 10) || 1);
+              const rowSpan = Math.max(1, parseInt(cell.getAttribute("rowspan") || "1", 10) || 1);
+              const value = cellTextFromElement(cell);
+
+              for (let offset = 0; offset < colSpan; offset += 1) {
+                out[col + offset] = offset === 0 ? value : "";
+                if (rowSpan > 1) {
+                  pendingRowSpans[col + offset] = {
+                    remaining: rowSpan - 1,
+                    value: ""
+                  };
+                }
+              }
+              col += colSpan;
+            });
+
+          fillPending();
+          rows.push(out);
+        });
+
+        return trimEmptyEdges(rows);
+      }
+
+      function parsePlainTextTable(text) {
+        const cleaned = String(text || "").replace(/\r\n?/g, "\n").trim();
+        if (!cleaned) return [];
+
+        const markdown = parseMarkdownTable(cleaned);
+        if (markdown.length) return trimEmptyEdges(markdown);
+
+        const lines = cleaned.split("\n");
+        if (cleaned.includes("\t")) {
+          return trimEmptyEdges(lines.map((line) => line.split("\t").map(normalizeText)));
+        }
+
+        const delimiter = detectDelimiter(lines);
+        if (delimiter) {
+          return trimEmptyEdges(parseDelimitedText(cleaned, delimiter));
+        }
+
+        return lines.map((line) => [normalizeText(line)]).filter((row) => row[0] !== "");
+      }
+
+      function parseMarkdownTable(text) {
+        const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+        if (lines.length < 2 || !lines.every((line) => line.includes("|"))) return [];
+        const separatorIndex = lines.findIndex((line) => /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line));
+        if (separatorIndex < 1) return [];
+        const tableLines = lines.filter((_, index) => index !== separatorIndex);
+        return tableLines.map((line) => {
+          let trimmed = line;
+          if (trimmed.startsWith("|")) trimmed = trimmed.slice(1);
+          if (trimmed.endsWith("|")) trimmed = trimmed.slice(0, -1);
+          return trimmed.split("|").map((cell) => normalizeText(cell));
+        });
+      }
+
+      function detectDelimiter(lines) {
+        const candidates = [",", ";"];
+        let best = null;
+        let bestScore = 0;
+
+        candidates.forEach((candidate) => {
+          const counts = lines.slice(0, 8).map((line) => parseDelimitedLine(line, candidate).length);
+          const usefulCounts = counts.filter((count) => count > 1);
+          if (!usefulCounts.length) return;
+          const frequency = new Map();
+          usefulCounts.forEach((count) => frequency.set(count, (frequency.get(count) || 0) + 1));
+          const maxFrequency = Math.max(...frequency.values());
+          const score = maxFrequency * Math.max(...usefulCounts);
+          if (score > bestScore) {
+            best = candidate;
+            bestScore = score;
+          }
+        });
+
+        return best;
+      }
+
+      function parseDelimitedText(text, delimiter) {
+        const rows = [];
+        let row = [];
+        let value = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i += 1) {
+          const char = text[i];
+          const next = text[i + 1];
+
+          if (char === '"') {
+            if (inQuotes && next === '"') {
+              value += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            row.push(normalizeText(value));
+            value = "";
+          } else if (char === "\n" && !inQuotes) {
+            row.push(normalizeText(value));
+            rows.push(row);
+            row = [];
+            value = "";
+          } else {
+            value += char;
+          }
+        }
+
+        row.push(normalizeText(value));
+        rows.push(row);
+        return rows;
+      }
+
+      function parseDelimitedLine(line, delimiter) {
+        return parseDelimitedText(line, delimiter)[0] || [line];
+      }
+
+      function loadMatrix(matrix, sourceLabel = "table") {
+        const cleaned = trimEmptyEdges(matrix);
+        if (!cleaned.length) {
+          setStatus("No table-like data found. Try copying the source table again, then paste here.");
+          return;
+        }
+        pushHistory();
+        data = normalizeRectangular(cleaned);
+        activeRow = 0;
+        activeCol = 0;
+        selectedRows.clear();
+        selectedCols.clear();
+        render();
+        setStatus(`Loaded ${data.length} row${data.length === 1 ? "" : "s"} × ${columnCount()} column${columnCount() === 1 ? "" : "s"} from ${sourceLabel}.`);
+      }
+
+      function loadFromPasteZone() {
+        const html = pasteZone.innerHTML;
+        const text = pasteZone.innerText || pasteZone.textContent || "";
+        const matrix = parseClipboardData(html, text);
+        loadMatrix(matrix, "paste box");
+      }
+
+      function updateModelFromDom() {
+        tableStage.querySelectorAll(".data-cell").forEach((cell) => {
+          const row = Number(cell.dataset.row);
+          const col = Number(cell.dataset.col);
+          if (!Number.isFinite(row) || !Number.isFinite(col)) return;
+          if (!data[row]) data[row] = [];
+          data[row][col] = normalizeText(cell.innerText || cell.textContent || "");
+        });
+        data = normalizeRectangular(data);
+      }
+
+      function render() {
+        data = normalizeRectangular(data);
+        const rows = data.length;
+        const cols = columnCount();
+
+        if (!rows || !cols) {
+          tableStage.innerHTML = `<div class="empty-state"><strong>No table loaded yet.</strong><br>Paste a table above, or load the sample table.</div>`;
+          updateToolbarState();
+          setStatus("Ready.");
+          return;
+        }
+
+        activeRow = Math.min(Math.max(activeRow, 0), rows - 1);
+        activeCol = Math.min(Math.max(activeCol, 0), cols - 1);
+
+        const firstRowHeader = headerModeCheckbox.checked;
+        let html = `<table class="editor-table" aria-label="Editable table"><thead><tr><th class="corner">↕</th>`;
+        for (let c = 0; c < cols; c += 1) {
+          const selected = selectedCols.has(c);
+          const active = activeCol === c;
+          html += `<th class="col-handle"><button type="button" class="handle-button col-button ${selected ? "selected" : ""} ${active ? "active" : ""}" data-col="${c}" title="Click to select column ${c + 1}; Shift-click to add/remove from selection">C${c + 1}</button></th>`;
+        }
+        html += `</tr></thead><tbody>`;
+
+        for (let r = 0; r < rows; r += 1) {
+          html += `<tr><th class="row-handle"><button type="button" class="handle-button row-button ${selectedRows.has(r) ? "selected" : ""} ${activeRow === r ? "active" : ""}" data-row="${r}" title="Click to select row ${r + 1}; Shift-click to add/remove from selection">R${r + 1}</button></th>`;
+          for (let c = 0; c < cols; c += 1) {
+            const classes = ["data-cell"];
+            if (firstRowHeader && r === 0) classes.push("header-cell");
+            if (activeCol === c) classes.push("active-col");
+            if (activeRow === r) classes.push("active-row");
+            if (selectedCols.has(c)) classes.push("selected-col");
+            if (selectedRows.has(r)) classes.push("selected-row");
+            html += `<td><div class="${classes.join(" ")}" contenteditable="true" spellcheck="true" data-row="${r}" data-col="${c}" role="textbox" aria-label="Row ${r + 1}, column ${c + 1}">${escapeHtml(data[r][c])}</div></td>`;
+          }
+          html += `</tr>`;
+        }
+        html += `</tbody></table>`;
+        tableStage.innerHTML = html;
+        updateToolbarState();
+      }
+
+      function updateToolbarState() {
+        const hasData = data.length > 0 && columnCount() > 0;
+        [
+          "copyRichButton", "copyTextButton", "trimButton", "addColBeforeButton", "addColAfterButton",
+          "moveColLeftButton", "moveColRightButton", "deleteColButton", "addRowAboveButton",
+          "addRowBelowButton", "deleteRowButton", "clearButton"
+        ].forEach((id) => { $(id).disabled = !hasData; });
+        $("undoButton").disabled = history.length === 0;
+      }
+
+      function getTargetColumns() {
+        const cols = selectedCols.size ? Array.from(selectedCols) : [activeCol];
+        return cols.filter((c) => c >= 0 && c < columnCount()).sort((a, b) => a - b);
+      }
+
+      function getTargetRows() {
+        const rows = selectedRows.size ? Array.from(selectedRows) : [activeRow];
+        return rows.filter((r) => r >= 0 && r < data.length).sort((a, b) => a - b);
+      }
+
+      function addColumn(index) {
+        updateModelFromDom();
+        pushHistory();
+        const width = columnCount();
+        const insertAt = Math.min(Math.max(index, 0), width);
+        if (!data.length) data = [[""]];
+        data.forEach((row, r) => row.splice(insertAt, 0, r === 0 && headerModeCheckbox.checked ? "New column" : ""));
+        activeCol = insertAt;
+        selectedCols.clear();
+        render();
+        setStatus(`Added column ${insertAt + 1}.`);
+      }
+
+      function deleteColumns() {
+        updateModelFromDom();
+        const targets = getTargetColumns();
+        if (!targets.length) return;
+        if (targets.length >= columnCount()) {
+          setStatus("Keep at least one column. Clear the table instead if you want to start over.");
+          return;
+        }
+        pushHistory();
+        targets.slice().reverse().forEach((col) => data.forEach((row) => row.splice(col, 1)));
+        activeCol = Math.min(targets[0], columnCount() - 1);
+        selectedCols.clear();
+        render();
+        setStatus(`Deleted ${targets.length} column${targets.length === 1 ? "" : "s"}.`);
+      }
+
+      function moveColumns(direction) {
+        updateModelFromDom();
+        const width = columnCount();
+        const targets = getTargetColumns();
+        if (!targets.length) return;
+        if (direction < 0 && targets[0] === 0) return setStatus("Selected column is already at the left edge.");
+        if (direction > 0 && targets[targets.length - 1] === width - 1) return setStatus("Selected column is already at the right edge.");
+
+        pushHistory();
+        const targetSet = new Set(targets);
+        if (direction < 0) {
+          for (let c = 0; c < width; c += 1) {
+            if (targetSet.has(c) && !targetSet.has(c - 1)) {
+              data.forEach((row) => [row[c - 1], row[c]] = [row[c], row[c - 1]]);
+              targetSet.delete(c);
+              targetSet.add(c - 1);
+              if (activeCol === c) activeCol = c - 1;
+              else if (activeCol === c - 1) activeCol = c;
+            }
+          }
+        } else {
+          for (let c = width - 1; c >= 0; c -= 1) {
+            if (targetSet.has(c) && !targetSet.has(c + 1)) {
+              data.forEach((row) => [row[c + 1], row[c]] = [row[c], row[c + 1]]);
+              targetSet.delete(c);
+              targetSet.add(c + 1);
+              if (activeCol === c) activeCol = c + 1;
+              else if (activeCol === c + 1) activeCol = c;
+            }
+          }
+        }
+        selectedCols = targetSet;
+        render();
+        setStatus(`Moved ${targets.length} column${targets.length === 1 ? "" : "s"} ${direction < 0 ? "left" : "right"}.`);
+      }
+
+      function addRow(index) {
+        updateModelFromDom();
+        pushHistory();
+        const width = Math.max(1, columnCount());
+        const insertAt = Math.min(Math.max(index, 0), data.length);
+        data.splice(insertAt, 0, Array(width).fill(""));
+        activeRow = insertAt;
+        selectedRows.clear();
+        render();
+        setStatus(`Added row ${insertAt + 1}.`);
+      }
+
+      function deleteRows() {
+        updateModelFromDom();
+        const targets = getTargetRows();
+        if (!targets.length) return;
+        if (targets.length >= data.length) {
+          setStatus("Keep at least one row. Clear the table instead if you want to start over.");
+          return;
+        }
+        pushHistory();
+        targets.slice().reverse().forEach((row) => data.splice(row, 1));
+        activeRow = Math.min(targets[0], data.length - 1);
+        selectedRows.clear();
+        render();
+        setStatus(`Deleted ${targets.length} row${targets.length === 1 ? "" : "s"}.`);
+      }
+
+      function trimCurrentData() {
+        updateModelFromDom();
+        const trimmed = trimEmptyEdges(data);
+        if (!trimmed.length) {
+          setStatus("The table only contains empty cells. Use Clear to start over.");
+          return;
+        }
+        pushHistory();
+        data = normalizeRectangular(trimmed);
+        activeRow = Math.min(activeRow, data.length - 1);
+        activeCol = Math.min(activeCol, columnCount() - 1);
+        selectedRows.clear();
+        selectedCols.clear();
+        render();
+        setStatus("Removed fully empty outer rows and columns.");
+      }
+
+      function clearTable() {
+        if (!data.length) return;
+        pushHistory();
+        data = [];
+        activeRow = 0;
+        activeCol = 0;
+        selectedRows.clear();
+        selectedCols.clear();
+        pasteZone.innerHTML = "";
+        render();
+        setStatus("Cleared.");
+      }
+
+      function pasteMatrixAt(startRow, startCol, matrix) {
+        if (!matrix.length) return;
+        const clean = normalizeRectangular(matrix);
+        const height = clean.length;
+        const width = columnCount(clean);
+        const currentWidth = Math.max(columnCount(), startCol + width);
+
+        while (data.length < startRow + height) data.push(Array(currentWidth).fill(""));
+        data = data.map((row) => {
+          const next = row.slice();
+          while (next.length < currentWidth) next.push("");
+          return next;
+        });
+
+        for (let r = 0; r < height; r += 1) {
+          for (let c = 0; c < width; c += 1) {
+            data[startRow + r][startCol + c] = clean[r][c] || "";
+          }
+        }
+      }
+
+      function buildPlainText() {
+        updateModelFromDom();
+        return data.map((row) => row.map((cell) => String(cell ?? "").replace(/\t/g, " ")).join("\t")).join("\n");
+      }
+
+      function buildEmailTableHtml() {
+        updateModelFromDom();
+        const firstRowHeader = headerModeCheckbox.checked;
+        const tableStyle = "border-collapse:collapse;border:1px solid #c9ced8;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.35;";
+        const thStyle = "border:1px solid #c9ced8;background:#f3f5f8;font-weight:bold;text-align:left;padding:6px 8px;vertical-align:top;";
+        const tdStyle = "border:1px solid #c9ced8;text-align:left;padding:6px 8px;vertical-align:top;";
+
+        const rowsHtml = data.map((row, r) => {
+          const cells = row.map((cell) => {
+            const tag = firstRowHeader && r === 0 ? "th" : "td";
+            const style = tag === "th" ? thStyle : tdStyle;
+            const value = escapeHtml(cell).replace(/\n/g, "<br>");
+            return `<${tag} style="${style}">${value || "&nbsp;"}</${tag}>`;
+          }).join("");
+          return `<tr>${cells}</tr>`;
+        }).join("");
+
+        return `<table style="${tableStyle}">${rowsHtml}</table>`;
+      }
+
+      async function copyPlainText() {
+        const text = buildPlainText();
+        if (!text.trim()) return setStatus("There is no table content to copy.");
+        try {
+          await navigator.clipboard.writeText(text);
+          setStatus("Copied plain tab-separated text. Paste it into your reply or another spreadsheet.", true);
+        } catch (error) {
+          fallbackTextCopy(text);
+        }
+      }
+
+      async function copyRichTable() {
+        const text = buildPlainText();
+        const html = buildEmailTableHtml();
+        if (!text.trim()) return setStatus("There is no table content to copy.");
+
+        try {
+          if (navigator.clipboard && window.ClipboardItem) {
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                "text/html": new Blob([html], { type: "text/html" }),
+                "text/plain": new Blob([text], { type: "text/plain" })
+              })
+            ]);
+            setStatus("Copied rich table. Paste it directly into your email reply.", true);
+            return;
+          }
+          throw new Error("ClipboardItem is not available.");
+        } catch (error) {
+          const copied = fallbackRichCopy(html);
+          if (copied) {
+            setStatus("Copied rich table. Paste it directly into your email reply.", true);
+          } else {
+            showManualCopy(html);
+            setStatus("Automatic copy was blocked, so a manual copy panel opened.");
+          }
+        }
+      }
+
+      function fallbackTextCopy(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        setStatus(copied ? "Copied plain tab-separated text." : "Copy was blocked by the browser.", copied);
+      }
+
+      function fallbackRichCopy(html) {
+        const container = document.createElement("div");
+        container.contentEditable = "true";
+        container.style.position = "fixed";
+        container.style.left = "-9999px";
+        container.style.top = "0";
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const copied = document.execCommand("copy");
+        selection.removeAllRanges();
+        container.remove();
+        return copied;
+      }
+
+      function showManualCopy(html) {
+        manualCopyContent.innerHTML = html;
+        manualCopy.classList.remove("hidden");
+        const range = document.createRange();
+        range.selectNodeContents(manualCopyContent);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        manualCopyContent.focus();
+      }
+
+      function closeManualCopy() {
+        manualCopy.classList.add("hidden");
+        window.getSelection().removeAllRanges();
+      }
+
+      function handleCellClick(event) {
+        const cell = event.target.closest(".data-cell");
+        if (!cell) return;
+        activeRow = Number(cell.dataset.row);
+        activeCol = Number(cell.dataset.col);
+        renderSelectionOnly();
+      }
+
+      function renderSelectionOnly() {
+        tableStage.querySelectorAll(".data-cell").forEach((cell) => {
+          const r = Number(cell.dataset.row);
+          const c = Number(cell.dataset.col);
+          cell.classList.toggle("active-row", r === activeRow);
+          cell.classList.toggle("active-col", c === activeCol);
+          cell.classList.toggle("selected-row", selectedRows.has(r));
+          cell.classList.toggle("selected-col", selectedCols.has(c));
+        });
+        tableStage.querySelectorAll(".row-button").forEach((button) => {
+          const r = Number(button.dataset.row);
+          button.classList.toggle("active", r === activeRow);
+          button.classList.toggle("selected", selectedRows.has(r));
+        });
+        tableStage.querySelectorAll(".col-button").forEach((button) => {
+          const c = Number(button.dataset.col);
+          button.classList.toggle("active", c === activeCol);
+          button.classList.toggle("selected", selectedCols.has(c));
+        });
+      }
+
+      function handleHandleClick(event) {
+        const colButton = event.target.closest(".col-button");
+        const rowButton = event.target.closest(".row-button");
+        if (!colButton && !rowButton) return;
+
+        if (colButton) {
+          const col = Number(colButton.dataset.col);
+          activeCol = col;
+          if (event.shiftKey || event.metaKey || event.ctrlKey) {
+            selectedCols.has(col) ? selectedCols.delete(col) : selectedCols.add(col);
+          } else {
+            selectedCols.clear();
+            selectedCols.add(col);
+          }
+          renderSelectionOnly();
+          setStatus(`${selectedCols.size || 1} column${(selectedCols.size || 1) === 1 ? "" : "s"} selected. Use Shift-click to select more.`);
+        }
+
+        if (rowButton) {
+          const row = Number(rowButton.dataset.row);
+          activeRow = row;
+          if (event.shiftKey || event.metaKey || event.ctrlKey) {
+            selectedRows.has(row) ? selectedRows.delete(row) : selectedRows.add(row);
+          } else {
+            selectedRows.clear();
+            selectedRows.add(row);
+          }
+          renderSelectionOnly();
+          setStatus(`${selectedRows.size || 1} row${(selectedRows.size || 1) === 1 ? "" : "s"} selected. Use Shift-click to select more.`);
+        }
+      }
+
+      function handleCellInput(event) {
+        const cell = event.target.closest(".data-cell");
+        if (!cell) return;
+        const row = Number(cell.dataset.row);
+        const col = Number(cell.dataset.col);
+        if (!data[row]) data[row] = [];
+        data[row][col] = normalizeText(cell.innerText || cell.textContent || "");
+      }
+
+      function handleCellKeydown(event) {
+        const cell = event.target.closest(".data-cell");
+        if (!cell) return;
+
+        const row = Number(cell.dataset.row);
+        const col = Number(cell.dataset.col);
+
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          updateModelFromDom();
+          activeRow = Math.min(row + 1, data.length - 1);
+          activeCol = col;
+          render();
+          focusCell(activeRow, activeCol);
+          return;
+        }
+
+        if (event.key === "Tab") {
+          event.preventDefault();
+          updateModelFromDom();
+          const delta = event.shiftKey ? -1 : 1;
+          let nextRow = row;
+          let nextCol = col + delta;
+          if (nextCol >= columnCount()) {
+            nextCol = 0;
+            nextRow = Math.min(row + 1, data.length - 1);
+          } else if (nextCol < 0) {
+            nextCol = columnCount() - 1;
+            nextRow = Math.max(row - 1, 0);
+          }
+          activeRow = nextRow;
+          activeCol = nextCol;
+          render();
+          focusCell(activeRow, activeCol);
+        }
+      }
+
+      function focusCell(row, col) {
+        const cell = tableStage.querySelector(`.data-cell[data-row="${row}"][data-col="${col}"]`);
+        if (cell) {
+          cell.focus();
+          const range = document.createRange();
+          range.selectNodeContents(cell);
+          range.collapse(false);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+
+      function handleCellPaste(event) {
+        const cell = event.target.closest(".data-cell");
+        if (!cell) return;
+
+        const html = event.clipboardData.getData("text/html");
+        const text = event.clipboardData.getData("text/plain");
+        const matrix = parseClipboardData(html, text);
+        const rows = matrix.length;
+        const cols = columnCount(matrix);
+
+        event.preventDefault();
+
+        if (rows > 1 || cols > 1) {
+          updateModelFromDom();
+          pushHistory();
+          activeRow = Number(cell.dataset.row);
+          activeCol = Number(cell.dataset.col);
+          pasteMatrixAt(activeRow, activeCol, matrix);
+          render();
+          focusCell(activeRow, activeCol);
+          setStatus(`Pasted ${rows} row${rows === 1 ? "" : "s"} × ${cols} column${cols === 1 ? "" : "s"} into the table.`);
+        } else {
+          document.execCommand("insertText", false, normalizeText(text || (matrix[0] && matrix[0][0]) || ""));
+          handleCellInput(event);
+        }
+      }
+
+      pasteZone.addEventListener("paste", (event) => {
+        const html = event.clipboardData.getData("text/html");
+        const text = event.clipboardData.getData("text/plain");
+        const matrix = parseClipboardData(html, text);
+        if (matrix.length) {
+          event.preventDefault();
+          loadMatrix(matrix, "clipboard");
+          pasteZone.innerHTML = "";
+        }
+      });
+
+      tableStage.addEventListener("click", (event) => {
+        handleHandleClick(event);
+        handleCellClick(event);
+      });
+      tableStage.addEventListener("input", handleCellInput);
+      tableStage.addEventListener("keydown", handleCellKeydown);
+      tableStage.addEventListener("paste", handleCellPaste);
+
+      $("loadPasteButton").addEventListener("click", loadFromPasteZone);
+      $("sampleButton").addEventListener("click", () => loadMatrix(sampleData, "sample data"));
+      $("copyRichButton").addEventListener("click", copyRichTable);
+      $("copyTextButton").addEventListener("click", copyPlainText);
+      $("undoButton").addEventListener("click", undo);
+      $("trimButton").addEventListener("click", trimCurrentData);
+      $("addColBeforeButton").addEventListener("click", () => addColumn(activeCol));
+      $("addColAfterButton").addEventListener("click", () => addColumn(activeCol + 1));
+      $("moveColLeftButton").addEventListener("click", () => moveColumns(-1));
+      $("moveColRightButton").addEventListener("click", () => moveColumns(1));
+      $("deleteColButton").addEventListener("click", deleteColumns);
+      $("addRowAboveButton").addEventListener("click", () => addRow(activeRow));
+      $("addRowBelowButton").addEventListener("click", () => addRow(activeRow + 1));
+      $("deleteRowButton").addEventListener("click", deleteRows);
+      $("clearButton").addEventListener("click", clearTable);
+      $("closeManualCopy").addEventListener("click", closeManualCopy);
+      headerModeCheckbox.addEventListener("change", () => {
+        render();
+        setStatus(headerModeCheckbox.checked ? "First row will copy as a header row." : "All rows will copy as regular table rows.");
+      });
+
+      document.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if ((event.ctrlKey || event.metaKey) && event.shiftKey && key === "c") {
+          event.preventDefault();
+          copyRichTable();
+        }
+        if ((event.ctrlKey || event.metaKey) && key === "z" && document.activeElement && !document.activeElement.classList.contains("data-cell")) {
+          event.preventDefault();
+          undo();
+        }
+        if (event.key === "Escape" && !manualCopy.classList.contains("hidden")) closeManualCopy();
+      });
+
+      render();
+      setStatus("Ready. Paste a table in the box above, or load the sample table.");
+    })();
+  </script>
+</body>
+</html>
