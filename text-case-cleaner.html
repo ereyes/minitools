@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text Case & PDF Cleanup Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef1f5;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #667085;
+      --border: #d8dee8;
+      --soft: #f7f8fa;
+      --accent: #3b82f6;
+      --accent-soft: #edf4ff;
+      --reset: #e5484d;
+      --copy: #1fa971;
+      --shadow: 0 16px 36px rgba(18, 28, 45, 0.08);
+      --radius: 24px;
+      --radius-sm: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: Roboto, Arial, Helvetica, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { font-size: 90%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    .wrap {
+      width: min(980px, calc(100% - 28px));
+      margin: 26px auto 38px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 108px;
+      grid-template-areas:
+        "title title"
+        "controls controls"
+        "editor side"
+        "hint hint";
+      gap: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .title {
+      grid-area: title;
+      margin: 0;
+      font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .controls {
+      grid-area: controls;
+      display: grid;
+      gap: 10px;
+    }
+
+    .toolbar,
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button,
+    label.option {
+      font: inherit;
+    }
+
+    .toolbar button,
+    label.option {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      background: var(--soft);
+      font-weight: 500;
+      line-height: 1.15;
+    }
+
+    .toolbar button {
+      appearance: none;
+      cursor: pointer;
+      padding: 9px 12px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .toolbar button:hover {
+      transform: translateY(-1px);
+      border-color: #b9c4d4;
+    }
+
+    .toolbar .primary {
+      background: var(--accent-soft);
+      border-color: #bfd5ff;
+      color: #1858c8;
+      font-weight: 700;
+    }
+
+    .options {
+      color: var(--muted);
+    }
+
+    label.option {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 10px;
+      user-select: none;
+    }
+
+    input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+    }
+
+    .editor-panel,
+    .side-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fff;
+    }
+
+    .editor-panel {
+      grid-area: editor;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 150px;
+      min-height: 118px;
+      max-height: 55vh;
+      resize: vertical;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font: 0.96rem/1.5 var(--mono);
+      padding: 4px;
+    }
+
+    textarea:focus {
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 8px;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .side-panel {
+      grid-area: side;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafbfc;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .action-group {
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+    }
+
+    .icon-btn {
+      appearance: none;
+      width: 58px;
+      height: 58px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.98);
+    }
+
+    .icon-btn.reset { background: var(--reset); }
+    .icon-btn.copy { background: var(--copy); }
+
+    .icon-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    .button-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    .hint {
+      grid-area: hint;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 720px) {
+      html { font-size: 82%; }
+
+      .wrap {
+        width: min(100%, calc(100% - 16px));
+        margin: 12px auto 24px;
+      }
+
+      .app {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 20px;
+      }
+
+      .title {
+        font-size: 1.18rem;
+      }
+
+      .editor-panel {
+        padding: 10px;
+      }
+
+      textarea {
+        height: 104px;
+        min-height: 92px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .meta {
+        font-size: 0.78rem;
+      }
+
+      .controls {
+        gap: 8px;
+      }
+
+      .toolbar,
+      .options {
+        gap: 6px;
+      }
+
+      .toolbar button,
+      label.option {
+        font-size: 0.82rem;
+        padding: 8px 9px;
+      }
+
+      .toolbar button {
+        flex: 1 1 calc(50% - 6px);
+      }
+
+      .toolbar .primary {
+        flex-basis: 100%;
+      }
+
+      label.option {
+        flex: 1 1 calc(50% - 6px);
+        justify-content: flex-start;
+      }
+
+      input[type="checkbox"] {
+        width: 13px;
+        height: 13px;
+      }
+
+      .side-panel {
+        border: 0;
+        background: transparent;
+        padding: 2px 0 0;
+      }
+
+      .actions {
+        flex-direction: row;
+        gap: 20px;
+      }
+
+      .icon-btn {
+        width: 62px;
+        height: 62px;
+      }
+
+      .icon-btn svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .button-label {
+        font-size: 0.78rem;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+
+    @media (max-width: 380px) {
+      html { font-size: 78%; }
+
+      .app {
+        padding: 12px;
+      }
+
+      .toolbar button,
+      label.option {
+        padding: 7px 8px;
+      }
+
+      .icon-btn {
+        width: 58px;
+        height: 58px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="app" aria-label="Text case and cleanup tool">
+      <h1 class="title">Text Case &amp; Cleanup</h1>
+
+      <div class="editor-panel">
+        <textarea id="text" spellcheck="true" placeholder="Paste text here..."></textarea>
+        <div class="meta">
+          <span id="status">Ready</span>
+          <span id="stats">0 characters · 0 words</span>
+        </div>
+      </div>
+
+      <div class="controls" aria-label="Text cleanup options">
+        <div class="toolbar" aria-label="Case actions">
+          <button class="primary" type="button" data-action="lower-clean">lowercase + clean</button>
+          <button type="button" data-action="clean">clean only</button>
+          <button type="button" data-action="lower">lower case</button>
+          <button type="button" data-action="upper">upper case</button>
+          <button type="button" data-action="sentence">sentence case</button>
+          <button type="button" data-action="title">title case</button>
+        </div>
+
+        <div class="options" aria-label="Cleanup toggles">
+          <label class="option">
+            <input id="removeBreaks" type="checkbox" checked>
+            <span>remove breaks</span>
+          </label>
+          <label class="option">
+            <input id="fixHyphens" type="checkbox" checked>
+            <span>fix hyphens</span>
+          </label>
+          <label class="option">
+            <input id="collapseSpaces" type="checkbox" checked>
+            <span>extra spaces</span>
+          </label>
+          <label class="option">
+            <input id="trimText" type="checkbox" checked>
+            <span>trim edges</span>
+          </label>
+        </div>
+      </div>
+
+      <aside class="side-panel" aria-label="Copy and restart actions">
+        <div class="actions">
+          <div class="action-group">
+            <button class="icon-btn reset" type="button" data-action="reset" title="Restart / restore original text">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5a7 7 0 1 1-6.32 4H3.26A9 9 0 1 0 12 3a8.96 8.96 0 0 0-6.36 2.64L3 3v7h7L7.05 7.05A6.98 6.98 0 0 1 12 5z"/>
+              </svg>
+              <span class="sr-only">Restart</span>
+            </button>
+            <span class="button-label">restart</span>
+          </div>
+
+          <div class="action-group">
+            <button class="icon-btn copy" type="button" data-action="copy" title="Copy text">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
+              </svg>
+              <span class="sr-only">Copy</span>
+            </button>
+            <span class="button-label">copy</span>
+          </div>
+        </div>
+      </aside>
+
+      <p class="hint">Tip: paste your source text, click <strong>lowercase + clean</strong>, then use the green copy button. The red restart button restores the original pasted text.</p>
+    </section>
+  </div>
+
+  <script>
+    const textarea = document.getElementById('text');
+    const statusEl = document.getElementById('status');
+    const statsEl = document.getElementById('stats');
+
+    const options = {
+      removeBreaks: document.getElementById('removeBreaks'),
+      fixHyphens: document.getElementById('fixHyphens'),
+      collapseSpaces: document.getElementById('collapseSpaces'),
+      trimText: document.getElementById('trimText')
+    };
+
+    let originalText = '';
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+      window.clearTimeout(setStatus.timeout);
+      setStatus.timeout = window.setTimeout(() => {
+        statusEl.textContent = 'Ready';
+      }, 1800);
+    }
+
+    function updateStats() {
+      const text = textarea.value;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      statsEl.textContent = `${text.length.toLocaleString()} characters · ${words.toLocaleString()} words`;
+    }
+
+    function cleanText(input) {
+      let text = input;
+      text = text.replace(/\u00ad/g, '');
+      text = text.replace(/[\u00a0\u1680\u180e\u2000-\u200a\u202f\u205f\u3000]/g, ' ');
+      text = text.replace(/\r\n?/g, '\n');
+
+      if (options.fixHyphens.checked) {
+        text = text.replace(/([\p{L}\p{M}])-\s*\n\s*([\p{L}\p{M}])/gu, '$1$2');
+      }
+
+      if (options.removeBreaks.checked) {
+        text = text.replace(/\s*\n+\s*/g, ' ');
+      } else {
+        const paragraphs = text
+          .split(/\n{2,}/)
+          .map(paragraph => paragraph.replace(/\s*\n\s*/g, ' '));
+        text = paragraphs.join('\n\n');
+      }
+
+      if (options.collapseSpaces.checked) {
+        if (options.removeBreaks.checked) {
+          text = text.replace(/\s+/g, ' ');
+        } else {
+          text = text
+            .split('\n\n')
+            .map(paragraph => paragraph.replace(/[ \t\f\v]+/g, ' '))
+            .join('\n\n');
+        }
+
+        text = text
+          .replace(/[ \t]+([,.;:!?%\)\]\}])/g, '$1')
+          .replace(/([\(\[\{])[ \t]+/g, '$1');
+      }
+
+      if (options.trimText.checked) {
+        text = text.trim();
+      }
+
+      return text;
+    }
+
+    function toSentenceCase(input) {
+      const lower = input.toLocaleLowerCase();
+      return lower.replace(/(^\s*|[.!?]\s+)([\p{L}])/gu, (match, prefix, letter) => {
+        return prefix + letter.toLocaleUpperCase();
+      });
+    }
+
+    function toTitleCase(input) {
+      return input.toLocaleLowerCase().replace(/[\p{L}\p{M}][\p{L}\p{M}'’\-]*/gu, word => {
+        return word.charAt(0).toLocaleUpperCase() + word.slice(1);
+      });
+    }
+
+    function replaceSelectionOrAll(transformer) {
+      if (!originalText && textarea.value) {
+        originalText = textarea.value;
+      }
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const hasSelection = start !== end;
+      const before = textarea.value.slice(0, start);
+      const selected = textarea.value.slice(start, end);
+      const after = textarea.value.slice(end);
+      const source = hasSelection ? selected : textarea.value;
+      const result = transformer(source);
+
+      textarea.value = hasSelection ? before + result + after : result;
+
+      if (hasSelection) {
+        textarea.setSelectionRange(start, start + result.length);
+      }
+
+      textarea.focus();
+      updateStats();
+    }
+
+    async function copyText() {
+      try {
+        await navigator.clipboard.writeText(textarea.value);
+        setStatus('Copied');
+      } catch (error) {
+        textarea.select();
+        document.execCommand('copy');
+        setStatus('Copied');
+      }
+    }
+
+    function resetText() {
+      textarea.value = originalText;
+      textarea.focus();
+      updateStats();
+      setStatus('Restarted');
+    }
+
+    function runAction(action) {
+      const actions = {
+        'lower-clean': () => replaceSelectionOrAll(text => cleanText(text).toLocaleLowerCase()),
+        'clean': () => replaceSelectionOrAll(cleanText),
+        'lower': () => replaceSelectionOrAll(text => text.toLocaleLowerCase()),
+        'upper': () => replaceSelectionOrAll(text => text.toLocaleUpperCase()),
+        'sentence': () => replaceSelectionOrAll(toSentenceCase),
+        'title': () => replaceSelectionOrAll(toTitleCase),
+        'copy': copyText,
+        'reset': resetText
+      };
+
+      if (actions[action]) {
+        actions[action]();
+        if (!['copy', 'reset'].includes(action)) setStatus('Updated');
+      }
+    }
+
+    document.addEventListener('click', event => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      runAction(button.dataset.action);
+    });
+
+    textarea.addEventListener('input', updateStats);
+
+    textarea.addEventListener('paste', () => {
+      requestAnimationFrame(() => {
+        originalText = textarea.value;
+        updateStats();
+        setStatus('Pasted');
+      });
+    });
+
+    updateStats();
+  </script>
+</body>
+</html>
