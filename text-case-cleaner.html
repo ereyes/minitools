@@ -6,41 +6,54 @@
   <title>Text Case & PDF Cleanup Tool</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #eef1f5;
-      --panel: #ffffff;
-      --text: #1f2937;
-      --muted: #667085;
-      --border: #d8dee8;
-      --soft: #f7f8fa;
-      --accent: #3b82f6;
-      --accent-soft: #edf4ff;
-      --reset: #e5484d;
-      --copy: #1fa971;
-      --shadow: 0 16px 36px rgba(18, 28, 45, 0.08);
+      --bg: #f3e6d8;
+      --panel: #fffaf3;
+      --panel-soft: #f9efe4;
+      --field: #fffdf8;
+      --text: #3f2618;
+      --muted: #7a5b48;
+      --border: #dfc4aa;
+      --shadow: 0 16px 34px rgba(85, 47, 23, 0.11);
       --radius: 24px;
       --radius-sm: 14px;
+
+      /* Button palette intentionally kept from the previous version. */
+      --button-bg: #f7f8fa;
+      --button-text: #1f2937;
+      --button-border: #d8dee8;
+      --button-hover-border: #b9c4d4;
+      --button-primary-bg: #edf4ff;
+      --button-primary-border: #bfd5ff;
+      --button-primary-text: #1858c8;
+      --reset: #e5484d;
+      --copy: #1fa971;
+
+      --focus: #c86b22;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: Roboto, Arial, Helvetica, sans-serif;
+      --sans: Rubik, Arial, Helvetica, sans-serif;
     }
 
     * { box-sizing: border-box; }
 
-    html { font-size: 90%; }
+    html {
+      font-size: 83%;
+    }
 
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
+      background:#eee;
       color: var(--text);
       font-family: var(--sans);
+      line-height: 1.42;
     }
 
     .wrap {
       width: min(980px, calc(100% - 28px));
-      margin: 26px auto 38px;
+      margin: 24px auto 34px;
     }
 
     .app {
@@ -51,26 +64,27 @@
         "controls controls"
         "editor side"
         "hint hint";
-      gap: 14px;
+      gap: 13px;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 22px;
+      padding: 21px;
     }
 
     .title {
       grid-area: title;
       margin: 0;
-      font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+      color: #4a2615;
+      font-size: clamp(1.38rem, 2.2vw, 1.78rem);
       font-weight: 700;
-      letter-spacing: 0.01em;
+      letter-spacing: 0.005em;
     }
 
     .controls {
       grid-area: controls;
       display: grid;
-      gap: 10px;
+      gap: 9px;
     }
 
     .toolbar,
@@ -85,32 +99,28 @@
       font: inherit;
     }
 
-    .toolbar button,
-    label.option {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      background: var(--soft);
-      font-weight: 500;
-      line-height: 1.15;
-    }
-
     .toolbar button {
       appearance: none;
+      border: 1px solid var(--button-border);
+      border-radius: 12px;
+      color: var(--button-text);
+      background: var(--button-bg);
       cursor: pointer;
+      font-weight: 500;
+      line-height: 1.15;
       padding: 9px 12px;
       transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
     }
 
     .toolbar button:hover {
       transform: translateY(-1px);
-      border-color: #b9c4d4;
+      border-color: var(--button-hover-border);
     }
 
     .toolbar .primary {
-      background: var(--accent-soft);
-      border-color: #bfd5ff;
-      color: #1858c8;
+      background: var(--button-primary-bg);
+      border-color: var(--button-primary-border);
+      color: var(--button-primary-text);
       font-weight: 700;
     }
 
@@ -123,6 +133,12 @@
       align-items: center;
       gap: 7px;
       padding: 8px 10px;
+      border: 1px solid #e3c8ad;
+      border-radius: 12px;
+      background: #fbf0e2;
+      color: #684832;
+      font-weight: 500;
+      line-height: 1.15;
       user-select: none;
     }
 
@@ -131,14 +147,14 @@
       height: 15px;
       margin: 0;
       flex: 0 0 auto;
-      accent-color: var(--accent);
+      accent-color: #c86b22;
     }
 
     .editor-panel,
     .side-panel {
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      background: #fff;
+      background: var(--field);
     }
 
     .editor-panel {
@@ -151,20 +167,24 @@
 
     textarea {
       width: 100%;
-      height: 150px;
-      min-height: 118px;
+      height: 146px;
+      min-height: 112px;
       max-height: 55vh;
       resize: vertical;
       border: 0;
       outline: 0;
       background: transparent;
       color: var(--text);
-      font: 0.96rem/1.5 var(--mono);
+      font: 0.94rem/1.48 var(--mono);
       padding: 4px;
     }
 
+    textarea::placeholder {
+      color: #9a7c69;
+    }
+
     textarea:focus {
-      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--focus) 38%, transparent);
       border-radius: 8px;
     }
 
@@ -177,7 +197,7 @@
       padding-top: 8px;
       border-top: 1px solid var(--border);
       color: var(--muted);
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-variant-numeric: tabular-nums;
     }
 
@@ -187,7 +207,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fafbfc;
+      background: var(--panel-soft);
     }
 
     .actions {
@@ -236,7 +256,7 @@
 
     .button-label {
       color: var(--muted);
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       text-align: center;
     }
 
@@ -244,7 +264,7 @@
       grid-area: hint;
       margin: 0;
       color: var(--muted);
-      font-size: 0.88rem;
+      font-size: 0.86rem;
     }
 
     .sr-only {
@@ -259,24 +279,29 @@
       border: 0;
     }
 
-    @media (max-width: 720px) {
-      html { font-size: 82%; }
+    @media (max-width: 680px) {
+      html { font-size: 84%; }
 
       .wrap {
         width: min(100%, calc(100% - 16px));
-        margin: 12px auto 24px;
+        margin: 12px auto 22px;
       }
 
       .app {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 14px;
-        border-radius: 20px;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "title"
+          "editor"
+          "controls"
+          "side"
+          "hint";
+        gap: 11px;
+        padding: 15px;
+        border-radius: 22px;
       }
 
       .title {
-        font-size: 1.18rem;
+        font-size: 1.34rem;
       }
 
       .editor-panel {
@@ -286,110 +311,66 @@
       textarea {
         height: 104px;
         min-height: 92px;
-        font-size: 0.88rem;
-        line-height: 1.45;
-      }
-
-      .meta {
-        font-size: 0.78rem;
-      }
-
-      .controls {
-        gap: 8px;
+        font-size: 0.9rem;
       }
 
       .toolbar,
       .options {
-        gap: 6px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
       }
 
       .toolbar button,
       label.option {
-        font-size: 0.82rem;
+        width: 100%;
+        justify-content: center;
         padding: 8px 9px;
-      }
-
-      .toolbar button {
-        flex: 1 1 calc(50% - 6px);
-      }
-
-      .toolbar .primary {
-        flex-basis: 100%;
+        text-align: center;
       }
 
       label.option {
-        flex: 1 1 calc(50% - 6px);
-        justify-content: flex-start;
-      }
-
-      input[type="checkbox"] {
-        width: 13px;
-        height: 13px;
+        align-items: center;
       }
 
       .side-panel {
-        border: 0;
-        background: transparent;
-        padding: 2px 0 0;
+        padding: 10px;
       }
 
       .actions {
         flex-direction: row;
-        gap: 20px;
+        justify-content: center;
+        gap: 24px;
       }
 
-      .icon-btn {
-        width: 62px;
-        height: 62px;
-      }
-
-      .icon-btn svg {
-        width: 24px;
-        height: 24px;
-      }
-
-      .button-label {
-        font-size: 0.78rem;
-      }
-
+      .meta,
       .hint {
-        display: none;
+        font-size: 0.82rem;
       }
     }
 
-    @media (max-width: 380px) {
-      html { font-size: 78%; }
-
-      .app {
-        padding: 12px;
-      }
-
-      .toolbar button,
-      label.option {
-        padding: 7px 8px;
-      }
-
-      .icon-btn {
-        width: 58px;
-        height: 58px;
+    @media (max-width: 390px) {
+      .toolbar,
+      .options {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <main class="wrap">
     <section class="app" aria-label="Text case and cleanup tool">
       <h1 class="title">Text Case &amp; Cleanup</h1>
 
       <div class="editor-panel">
         <textarea id="text" spellcheck="true" placeholder="Paste text here..."></textarea>
         <div class="meta">
-          <span id="status">Ready</span>
+          <span id="status" aria-live="polite">Ready</span>
           <span id="stats">0 characters · 0 words</span>
         </div>
       </div>
 
-      <div class="controls" aria-label="Text cleanup options">
+      <div class="controls" aria-label="Cleanup and case options">
         <div class="toolbar" aria-label="Case actions">
           <button class="primary" type="button" data-action="lower-clean">lowercase + clean</button>
           <button type="button" data-action="clean">clean only</button>
@@ -399,7 +380,7 @@
           <button type="button" data-action="title">title case</button>
         </div>
 
-        <div class="options" aria-label="Cleanup toggles">
+        <div class="options" aria-label="Cleanup options">
           <label class="option">
             <input id="removeBreaks" type="checkbox" checked>
             <span>remove breaks</span>
@@ -424,7 +405,7 @@
           <div class="action-group">
             <button class="icon-btn reset" type="button" data-action="reset" title="Restart / restore original text">
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 5a7 7 0 1 1-6.32 4H3.26A9 9 0 1 0 12 3a8.96 8.96 0 0 0-6.36 2.64L3 3v7h7L7.05 7.05A6.98 6.98 0 0 1 12 5z"/>
+                <path d="M12 5a7 7 0 1 1-6.32 4H3.46a9 9 0 1 0 2.21-3.13V3H3.67v6h6V7H7.14A6.98 6.98 0 0 1 12 5z"/>
               </svg>
               <span class="sr-only">Restart</span>
             </button>
@@ -434,7 +415,8 @@
           <div class="action-group">
             <button class="icon-btn copy" type="button" data-action="copy" title="Copy text">
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
+                <path d="M8 7a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3V7zm3-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-6z"/>
+                <path d="M4 10a3 3 0 0 1 3-3v2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1h2a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8z"/>
               </svg>
               <span class="sr-only">Copy</span>
             </button>
@@ -443,9 +425,10 @@
         </div>
       </aside>
 
-      <p class="hint">Tip: paste your source text, click <strong>lowercase + clean</strong>, then use the green copy button. The red restart button restores the original pasted text.</p>
+      <p class="hint">Paste your source text, choose a cleanup/case option, then use the green copy button. The red restart button restores the original pasted text.</p>
+      <p style="font-size: 90%;">A mini-tool by E. Reyes ( <a href="https://ereyes.net/">ereyes.net</a> )</p>
     </section>
-  </div>
+  </main>
 
   <script>
     const textarea = document.getElementById('text');
@@ -530,10 +513,6 @@
     }
 
     function replaceSelectionOrAll(transformer) {
-      if (!originalText && textarea.value) {
-        originalText = textarea.value;
-      }
-
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const hasSelection = start !== end;
@@ -603,6 +582,10 @@
         updateStats();
         setStatus('Pasted');
       });
+    });
+
+    textarea.addEventListener('focus', () => {
+      if (!originalText && textarea.value) originalText = textarea.value;
     });
 
     updateStats();
