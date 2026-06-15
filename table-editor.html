@@ -4,248 +4,364 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quick Table Reply Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f6f7fb;
-      --panel: #ffffff;
-      --ink: #172033;
-      --muted: #5b667a;
-      --line: #d9deea;
-      --line-strong: #b9c1d3;
-      --accent: #315ac7;
-      --accent-soft: #e9efff;
-      --danger: #b42318;
-      --danger-soft: #fff1f0;
-      --shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
-      --radius: 16px;
+      --bg: #f3e6d8;
+      --panel: #fffaf3;
+      --panel-soft: #f9efe4;
+      --field: #fffdf8;
+      --text: #3f2618;
+      --muted: #7a5b48;
+      --border: #dfc4aa;
+      --shadow: 0 16px 34px rgba(85, 47, 23, 0.11);
+      --radius: 24px;
+      --radius-sm: 14px;
+
+      --button-bg: #f7f8fa;
+      --button-text: #1f2937;
+      --button-border: #d8dee8;
+      --button-hover-border: #b9c4d4;
+      --button-primary-bg: #edf4ff;
+      --button-primary-border: #bfd5ff;
+      --button-primary-text: #1858c8;
+      --reset: #e5484d;
+      --copy: #1fa971;
+
+      --focus: #c86b22;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --sans: Rubik, Arial, Helvetica, sans-serif;
     }
 
     * { box-sizing: border-box; }
 
-    html, body { min-height: 100%; }
+    html { font-size: 83%; }
 
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--ink);
+      min-height: 100vh;
+      background: #eee;
+      color: var(--text);
       font-family: var(--sans);
-      line-height: 1.45;
+      line-height: 1.42;
     }
 
-    header {
-      padding: 30px 22px 16px;
-      max-width: 1280px;
-      margin: 0 auto;
+    .wrap {
+      width: min(1180px, calc(100% - 28px));
+      margin: 24px auto 34px;
     }
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: clamp(1.7rem, 2vw, 2.3rem);
-      letter-spacing: -0.03em;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      max-width: 820px;
-    }
-
-    main {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 22px 36px;
+    .app {
       display: grid;
-      gap: 18px;
-    }
-
-    .panel {
+      grid-template-columns: minmax(0, 1fr) 108px;
+      grid-template-areas:
+        "title title"
+        "lede lede"
+        "editor side"
+        "controls controls"
+        "stage stage"
+        "hint hint"
+        "credit credit";
+      gap: 13px;
       background: var(--panel);
-      border: 1px solid var(--line);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
+      padding: 21px;
     }
 
-    .panel-inner { padding: 18px; }
-
-    .paste-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
-      gap: 18px;
-      align-items: stretch;
+    .title {
+      grid-area: title;
+      margin: 0;
+      color: #4a2615;
+      font-size: clamp(1.38rem, 2.2vw, 1.78rem);
+      font-weight: 700;
+      letter-spacing: 0.005em;
     }
 
-    @media (max-width: 880px) {
-      .paste-grid { grid-template-columns: 1fr; }
+    .lede {
+      grid-area: lede;
+      margin: -5px 0 0;
+      color: var(--muted);
+      max-width: 860px;
+      font-size: 0.92rem;
+    }
+
+    button,
+    .option { font: inherit; }
+
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .editor-panel,
+    .side-panel,
+    .table-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--field);
+    }
+
+    .editor-panel {
+      grid-area: editor;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
     }
 
     .paste-zone {
-      min-height: 150px;
-      border: 2px dashed var(--line-strong);
-      border-radius: 14px;
-      padding: 18px;
-      background: #fbfcff;
-      outline: none;
+      width: 100%;
+      min-height: 118px;
+      max-height: 42vh;
       overflow: auto;
-    }
-
-    .paste-zone:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px var(--accent-soft);
+      resize: vertical;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font: 0.94rem/1.48 var(--mono);
+      padding: 4px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .paste-zone:empty::before {
       content: attr(data-placeholder);
-      color: #7b8495;
+      color: #9a7c69;
     }
 
-    .help-card {
-      background: #fbfcff;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
+    .paste-zone:focus {
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--focus) 38%, transparent);
+      border-radius: 8px;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
       color: var(--muted);
+      font-size: 0.86rem;
+      font-variant-numeric: tabular-nums;
     }
 
-    .help-card h2 {
-      margin: 0 0 8px;
-      color: var(--ink);
-      font-size: 1rem;
-    }
-
-    .help-card ol {
-      margin: 10px 0 0;
-      padding-left: 1.25rem;
-    }
-
-    .help-card li + li { margin-top: 6px; }
-
-    .toolbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
+    .side-panel {
+      grid-area: side;
+      padding: 12px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
       align-items: center;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--line);
-      border-radius: var(--radius) var(--radius) 0 0;
+      justify-content: center;
+      background: var(--panel-soft);
     }
 
-    .toolbar-section {
+    .actions {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      flex-direction: column;
       align-items: center;
-      padding-right: 10px;
-      margin-right: 2px;
-      border-right: 1px solid var(--line);
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
     }
 
-    .toolbar-section:last-child {
-      border-right: 0;
-      padding-right: 0;
+    .action-group {
+      display: grid;
+      justify-items: center;
+      gap: 5px;
     }
 
-    button, .checkbox-pill {
+    .icon-btn {
       appearance: none;
-      border: 1px solid var(--line-strong);
-      background: #fff;
-      color: var(--ink);
-      border-radius: 10px;
-      padding: 8px 10px;
-      font: inherit;
-      cursor: pointer;
-      min-height: 38px;
-    }
-
-    button:hover, .checkbox-pill:hover { background: #f8faff; }
-
-    button:focus-visible, .checkbox-pill:focus-within {
-      outline: 3px solid var(--accent-soft);
-      border-color: var(--accent);
-    }
-
-    button.primary {
-      background: var(--accent);
-      border-color: var(--accent);
+      width: 58px;
+      height: 58px;
+      border: 0;
+      border-radius: 999px;
       color: #fff;
-      font-weight: 650;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
+      transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
     }
 
-    button.primary:hover { filter: brightness(0.96); }
-
-    button.danger {
-      border-color: #f0b8b3;
-      color: var(--danger);
-      background: #fff;
+    .icon-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(0.98);
     }
 
-    button.danger:hover { background: var(--danger-soft); }
+    .icon-btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
 
-    button.ghost { color: var(--muted); }
+    .icon-btn.reset { background: var(--reset); }
+    .icon-btn.copy { background: var(--copy); }
 
-    button:disabled {
+    .icon-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    .button-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .controls {
+      grid-area: controls;
+      display: grid;
+      gap: 9px;
+    }
+
+    .toolbar,
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .toolbar + .toolbar {
+      padding-top: 2px;
+    }
+
+    .toolbar button {
+      appearance: none;
+      border: 1px solid var(--button-border);
+      border-radius: 12px;
+      color: var(--button-text);
+      background: var(--button-bg);
+      cursor: pointer;
+      font-weight: 500;
+      line-height: 1.15;
+      padding: 9px 12px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, opacity 120ms ease;
+    }
+
+    .toolbar button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: var(--button-hover-border);
+    }
+
+    .toolbar button:disabled {
       opacity: 0.48;
       cursor: not-allowed;
     }
 
-    .checkbox-pill {
+    .toolbar .primary {
+      background: var(--button-primary-bg);
+      border-color: var(--button-primary-border);
+      color: var(--button-primary-text);
+      font-weight: 700;
+    }
+
+    .toolbar .danger {
+      color: #b42318;
+      border-color: #f0b8b3;
+      background: #fff7f6;
+    }
+
+    .toolbar .ghost {
+      color: var(--muted);
+    }
+
+    button:focus-visible,
+    .option:focus-within,
+    .handle-button:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 22%, transparent);
+      outline-offset: 2px;
+    }
+
+    .options {
+      color: var(--muted);
+    }
+
+    .option {
       display: inline-flex;
-      gap: 8px;
       align-items: center;
+      gap: 7px;
+      padding: 8px 10px;
+      border: 1px solid #e3c8ad;
+      border-radius: 12px;
+      background: #fbf0e2;
+      color: #684832;
+      font-weight: 500;
+      line-height: 1.15;
       user-select: none;
-      color: var(--muted);
     }
 
-    .checkbox-pill input { margin: 0; }
-
-    .statusbar {
-      min-height: 24px;
-      padding: 10px 18px 0;
-      color: var(--muted);
-      font-size: 0.92rem;
+    input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: #c86b22;
     }
 
-    .statusbar strong { color: var(--ink); }
+    .table-panel {
+      grid-area: stage;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .table-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      background: var(--panel-soft);
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-top strong { color: var(--text); }
 
     .table-stage {
-      padding: 14px 18px 18px;
+      padding: 12px;
       overflow: auto;
-      min-height: 240px;
+      min-height: 260px;
+      max-height: 62vh;
+      background: var(--field);
     }
 
     .empty-state {
-      border: 1px dashed var(--line-strong);
-      border-radius: 14px;
+      border: 1px dashed #d4b599;
+      border-radius: 12px;
       padding: 28px;
-      background: #fbfcff;
+      background: #fffaf3;
       color: var(--muted);
       text-align: center;
     }
 
-    .empty-state strong { color: var(--ink); }
+    .empty-state strong { color: var(--text); }
 
     .editor-table {
       border-collapse: separate;
       border-spacing: 0;
       min-width: 520px;
       width: max-content;
-      background: #fff;
-      border: 1px solid var(--line-strong);
+      background: #fffdf8;
+      border: 1px solid #d7bba1;
       border-radius: 12px;
       overflow: hidden;
+      box-shadow: 0 6px 16px rgba(85, 47, 23, 0.06);
     }
 
     .editor-table th,
     .editor-table td {
-      border-right: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
       min-width: 120px;
       max-width: 420px;
       vertical-align: top;
@@ -263,7 +379,7 @@
       min-width: 58px;
       width: 58px;
       text-align: center;
-      background: #f7f9fe;
+      background: #f9efe4;
       color: var(--muted);
       font-weight: 600;
       padding: 6px;
@@ -288,19 +404,24 @@
     }
 
     .handle-button {
+      appearance: none;
       width: 100%;
       min-height: 30px;
       padding: 4px 6px;
+      border: 1px solid #e3c8ad;
       border-radius: 8px;
-      font-size: 0.82rem;
+      background: #fffaf3;
       color: var(--muted);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
     }
 
     .handle-button.active,
     .handle-button.selected {
-      color: var(--accent);
-      border-color: var(--accent);
-      background: var(--accent-soft);
+      color: #9b4e19;
+      border-color: #c86b22;
+      background: #fff3e8;
     }
 
     .data-cell {
@@ -309,35 +430,27 @@
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       min-height: 38px;
+      color: var(--text);
     }
 
     .data-cell:focus {
-      box-shadow: inset 0 0 0 2px var(--accent);
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--focus) 62%, transparent);
       background: #fff;
     }
 
     .data-cell.header-cell {
       font-weight: 700;
-      background: #f8faff;
+      background: #fbf0e2;
     }
 
     .data-cell.active-col,
-    .data-cell.active-row { background: #fbfdff; }
+    .data-cell.active-row { background: #fffaf3; }
 
     .data-cell.selected-col,
-    .data-cell.selected-row { background: #eef4ff; }
+    .data-cell.selected-row { background: #fff3e8; }
 
-    .cell-tools {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 8px;
-      border-bottom: 1px solid var(--line);
-      background: #fbfcff;
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
+    .data-cell.header-cell.selected-col,
+    .data-cell.header-cell.selected-row { background: #f6e3cf; }
 
     .hidden { display: none !important; }
 
@@ -347,10 +460,10 @@
       width: min(680px, calc(100vw - 36px));
       max-height: min(560px, calc(100vh - 36px));
       overflow: auto;
-      background: #fff;
-      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 24px 60px rgba(17, 24, 39, 0.22);
+      box-shadow: 0 24px 60px rgba(85, 47, 23, 0.22);
       padding: 16px;
       z-index: 100;
     }
@@ -366,6 +479,7 @@
     .manual-copy h2 {
       margin: 0;
       font-size: 1.05rem;
+      color: var(--text);
     }
 
     .manual-copy p {
@@ -373,86 +487,209 @@
       color: var(--muted);
     }
 
+    .manual-copy button {
+      appearance: none;
+      border: 1px solid var(--button-border);
+      border-radius: 12px;
+      color: var(--button-text);
+      background: var(--button-bg);
+      cursor: pointer;
+      font-weight: 500;
+      line-height: 1.15;
+      padding: 8px 10px;
+    }
+
     .manual-copy-content {
-      border: 1px solid var(--line);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 12px;
       overflow: auto;
+      background: var(--field);
     }
 
-    .kbd {
-      display: inline-block;
-      padding: 1px 6px;
-      border: 1px solid var(--line-strong);
-      border-bottom-width: 2px;
-      border-radius: 6px;
-      background: #fff;
-      font-family: var(--mono);
-      font-size: 0.83em;
-      color: var(--ink);
+    .hint,
+    .credit {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .hint { grid-area: hint; }
+    .credit { grid-area: credit; font-size: 0.82rem; }
+
+    a {
+      color: #9b4e19;
+      text-underline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 760px) {
+      html { font-size: 84%; }
+
+      .wrap {
+        width: min(100%, calc(100% - 16px));
+        margin: 12px auto 22px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "title"
+          "lede"
+          "editor"
+          "side"
+          "controls"
+          "stage"
+          "hint"
+          "credit";
+        gap: 11px;
+        padding: 15px;
+        border-radius: 22px;
+      }
+
+      .title { font-size: 1.34rem; }
+
+      .editor-panel,
+      .side-panel { padding: 10px; }
+
+      .paste-zone {
+        min-height: 102px;
+        font-size: 0.9rem;
+      }
+
+      .toolbar,
+      .options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .toolbar button,
+      .option {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 9px;
+        text-align: center;
+      }
+
+      .actions {
+        flex-direction: row;
+        justify-content: center;
+        gap: 24px;
+      }
+
+      .table-stage {
+        min-height: 220px;
+        max-height: 58vh;
+        padding: 10px;
+      }
+
+      .meta,
+      .hint,
+      .table-top,
+      .credit { font-size: 0.82rem; }
+    }
+
+    @media (max-width: 430px) {
+      .toolbar,
+      .options { grid-template-columns: 1fr; }
+      .editor-table { min-width: 420px; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Quick Table Reply Editor</h1>
-    <p class="subtitle">Paste a table from email, Sheets, Excel, CSV, TSV, or Markdown; make fast temporary edits; then copy a clean table back into your email reply.</p>
-  </header>
+  <main class="wrap">
+    <section class="app" aria-label="Quick table reply editor">
+      <h1 class="title">Quick Table Reply Editor</h1>
+      <p class="lede">Paste a table from email, Sheets, Excel, CSV, TSV, or Markdown; make quick temporary edits; then copy a clean table into your email reply.</p>
 
-  <main>
-    <section class="panel" aria-labelledby="paste-heading">
-      <div class="panel-inner paste-grid">
-        <div>
-          <h2 id="paste-heading" style="margin:0 0 10px;font-size:1rem;">Paste table data</h2>
-          <div id="pasteZone" class="paste-zone" contenteditable="true" role="textbox" aria-label="Paste table data here" data-placeholder="Click here and paste your table. HTML tables, tab-separated rows, CSV, and Markdown tables are supported."></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-            <button id="loadPasteButton" type="button">Load pasted content</button>
-            <button id="sampleButton" type="button" class="ghost">Load sample table</button>
+      <div class="editor-panel" aria-labelledby="paste-heading">
+        <h2 id="paste-heading" class="sr-only">Paste table data</h2>
+        <div id="pasteZone" class="paste-zone" contenteditable="true" role="textbox" aria-label="Paste table data here" spellcheck="false" data-placeholder="Paste table data here..."></div>
+        <div class="meta">
+          <span>Paste from email, Sheets, Excel, TSV, CSV, or Markdown.</span>
+        </div>
+      </div>
+
+      <aside class="side-panel" aria-label="Copy and clear actions">
+        <div class="actions">
+          <div class="action-group">
+            <button id="clearButton" class="icon-btn reset" type="button" title="Clear table and paste box">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5a7 7 0 1 1-6.32 4H3.46a9 9 0 1 0 2.21-3.13V3H3.67v6h6V7H7.14A6.98 6.98 0 0 1 12 5z"/>
+              </svg>
+              <span class="sr-only">Clear</span>
+            </button>
+            <span class="button-label">clear</span>
+          </div>
+
+          <div class="action-group">
+            <button id="copyRichButton" class="icon-btn copy" type="button" title="Copy rich table">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 7a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3V7zm3-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-6z"/>
+                <path d="M4 10a3 3 0 0 1 3-3v2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1h2a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8z"/>
+              </svg>
+              <span class="sr-only">Copy rich table</span>
+            </button>
+            <span class="button-label">copy rich</span>
           </div>
         </div>
-        <aside class="help-card" aria-label="How to use">
-          <h2>Workflow</h2>
-          <ol>
-            <li>Copy the table from the email or data source.</li>
-            <li>Paste it into the box on the left.</li>
-            <li>Click any cell to choose the current row and column.</li>
-            <li>Move, add, or delete columns and rows.</li>
-            <li>Use <strong>Copy rich table</strong>, then paste into your email reply.</li>
-          </ol>
-          <p style="margin:12px 0 0;">Everything runs in this browser page. No data is sent anywhere.</p>
-        </aside>
-      </div>
-    </section>
+      </aside>
 
-    <section id="editorPanel" class="panel" aria-label="Table editor">
-      <div class="toolbar" role="toolbar" aria-label="Table editing tools">
-        <div class="toolbar-section">
-          <button id="copyRichButton" type="button" class="primary">Copy rich table</button>
-          <button id="copyTextButton" type="button">Copy plain text</button>
+      <div class="controls" aria-label="Table tools">
+        <div class="toolbar" aria-label="Load and copy tools">
+          <button id="loadPasteButton" type="button" class="primary">load pasted content</button>
+          <button id="sampleButton" type="button">sample table</button>
+          <button id="copyTextButton" type="button">copy plain text</button>
+          <button id="undoButton" type="button">undo</button>
+          <button id="trimButton" type="button">trim empty edges</button>
         </div>
-        <div class="toolbar-section">
-          <button id="undoButton" type="button">Undo</button>
-          <button id="trimButton" type="button">Trim empty edges</button>
-          <label class="checkbox-pill"><input id="headerMode" type="checkbox" checked /> first row is header</label>
+
+        <div class="options" aria-label="Copy options">
+          <label class="option">
+            <input id="headerMode" type="checkbox" checked>
+            <span>first row is header</span>
+          </label>
+          <span class="option" title="Click a row or column handle; Shift/Ctrl/Cmd-click to select more.">handles select rows/cols</span>
+          <span class="option" title="Press Tab to move horizontally; Enter moves to the next row.">tab / enter navigation</span>
         </div>
-        <div class="toolbar-section">
-          <button id="addColBeforeButton" type="button">Add col before</button>
-          <button id="addColAfterButton" type="button">Add col after</button>
-          <button id="moveColLeftButton" type="button">Move col left</button>
-          <button id="moveColRightButton" type="button">Move col right</button>
-          <button id="deleteColButton" type="button" class="danger">Delete col</button>
+
+        <div class="toolbar" aria-label="Column tools">
+          <button id="addColBeforeButton" type="button">add col before</button>
+          <button id="addColAfterButton" type="button">add col after</button>
+          <button id="moveColLeftButton" type="button">move col left</button>
+          <button id="moveColRightButton" type="button">move col right</button>
+          <button id="deleteColButton" type="button" class="danger">delete col</button>
         </div>
-        <div class="toolbar-section">
-          <button id="addRowAboveButton" type="button">Add row above</button>
-          <button id="addRowBelowButton" type="button">Add row below</button>
-          <button id="deleteRowButton" type="button" class="danger">Delete row</button>
-        </div>
-        <div class="toolbar-section">
-          <button id="clearButton" type="button" class="ghost">Clear</button>
+
+        <div class="toolbar" aria-label="Row tools">
+          <button id="addRowAboveButton" type="button">add row above</button>
+          <button id="addRowBelowButton" type="button">add row below</button>
+          <button id="deleteRowButton" type="button" class="danger">delete row</button>
         </div>
       </div>
-      <div id="statusbar" class="statusbar" aria-live="polite"></div>
-      <div id="tableStage" class="table-stage"></div>
+
+      <div class="table-panel" aria-label="Table editor">
+        <div class="table-top">
+          <span id="statusbar" aria-live="polite">Ready</span>
+          <span>edit cells directly</span>
+        </div>
+        <div id="tableStage" class="table-stage"></div>
+      </div>
+
+      <p class="hint">Paste a source table, adjust rows or columns, then use the green copy button. Everything runs locally in this browser page.</p>
+      <p class="credit">A mini-tool by E. Reyes ( <a href="https://ereyes.net/">ereyes.net</a> )</p>
     </section>
   </main>
 
